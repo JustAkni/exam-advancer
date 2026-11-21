@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <!-- [НЕ УДАЛЯТЬ] viewport: без него медиа-запросы для телефона в style.css не сработают. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Тест</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- [НЕ УДАЛЯТЬ] применяет тему до отрисовки (нет белой вспышки). Ключ 'theme' = Quiz.config.KEYS.theme -->
+    <script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
+</head>
+<body>
+    <!-- [НЕ УДАЛЯТЬ] #quiz-wrapper (его меняет ассистент), #categoryTitle и #quiz — их ищут assistant.js и quiz.js.
+         Шапку и кнопку темы создаёт js/layout.js. -->
+    <div id="quiz-wrapper" class="layout-center">
+        <div class="container">
+            <h2 id="categoryTitle"></h2>
+            <div id="quiz"></div>
+        </div>
+    </div>
+
+    <!-- [ПОРЯДОК ВАЖЕН] config → utils → store → layout → theme → auth → (assistant) → скрипт страницы. -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/assistant.js"></script>
+    <script src="js/quiz.js"></script>
+</body>
+</html>
