@@ -1,0 +1,328 @@
+/* =====================================================================
+   css/style.css — единый стиль всех страниц.
+
+   КАК ПОМЕНЯТЬ ЦВЕТА: правьте переменные в :root (светлая тема) и в
+   [data-theme="dark"] (тёмная). Больше нигде цвета «вручную» не нужны.
+
+   [БЫЛО В ОРИГИНАЛЕ → ИСПРАВЛЕНО]
+   • Был глобальный селектор `button {...}`: КАЖДАЯ новая кнопка получала
+     кружок-radio, ширину 100% и отступ 45px, и приходилось «отменять» это
+     для навигации, сетки, выбора количества и т.д. (отсюда ~300 строк
+     !important). Теперь кнопки получают вид только через классы:
+     .btn (обычная кнопка), .answer (вариант ответа), .grid-question.
+   • Тёмная тема — это не отдельные переопределения на каждый элемент,
+     а смена значений переменных.
+
+   [НЕ УДАЛЯТЬ / НЕ ПЕРЕИМЕНОВЫВАТЬ] классы, которые создаёт JS:
+     .answer .multi .selected .correct .wrong .grid-question .current
+     .answered-correct .answered-wrong .navigation-panel .question-block
+     .theme-toggle-btn .toast .answer-row .q-item
+   Если переименуете класс здесь — переименуйте и в js/quiz.js / admin.js.
+   ===================================================================== */
+
+:root {
+  --bg: #ffffff;
+  --text: #333333;
+  --text-strong: #000000;
+  --muted: #666666;
+  --card: #f8f9fa;
+  --card-hover: #e9ecef;
+  --border: #dee2e6;
+  --zebra: #f9f9f9;
+
+  --primary: #007bff;
+  --primary-hover: #0069d9;
+  --secondary: #6c757d;
+  --secondary-hover: #5a6268;
+  --success: #28a745;
+  --warning: #ffc107;
+  --danger: #dc3545;
+
+  --correct-bg: #d4edda;
+  --correct-border: #c3e6cb;
+  --correct-text: #155724;
+  --wrong-bg: #f8d7da;
+  --wrong-border: #f5c6cb;
+  --wrong-text: #721c24;
+  --selected-bg: #e3f2fd;
+  --selected-accent: #2196f3;
+  --current: #00bcd4;
+  --grid-idle: #e0e0e0;
+  --grid-ok: #4caf50;
+  --grid-bad: #f44336;
+  --input-bg: #ffffff;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+  --bg: #121212;
+  --text: #e0e0e0;
+  --text-strong: #ffffff;
+  --muted: #aaaaaa;
+  --card: #1e1e1e;
+  --card-hover: #2c2c2c;
+  --border: #333333;
+  --zebra: #252525;
+
+  --correct-bg: #1b4d2e;
+  --correct-border: #28a745;
+  --correct-text: #d4edda;
+  --wrong-bg: #5c1e23;
+  --wrong-border: #dc3545;
+  --wrong-text: #f8d7da;
+  --selected-bg: #1a3b5c;
+  --selected-accent: #4da3ff;
+  --grid-idle: #333333;
+  --input-bg: #2a2a2a;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== БАЗА ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.container { width: 100%; max-width: 900px; margin: 0 auto; padding: 20px; }
+
+h1 { color: var(--text-strong); margin-bottom: 20px; }
+h2 { color: var(--text-strong); }
+a { color: var(--primary); }
+.muted { color: var(--muted); }
+.hidden { display: none !important; }
+
+h2#categoryTitle {
+  font-size: 24px; font-weight: 600; color: var(--text-strong);
+  margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+
+/* ===== КНОПКИ (ТОЛЬКО через класс .btn) ===== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 20px; font-size: 15px; font-family: inherit; cursor: pointer;
+  background: var(--secondary); color: #fff;
+  border: none; border-radius: 4px; transition: background 0.2s, opacity 0.2s;
+  text-decoration: none; /* .btn бывает и на <a> */
+}
+.btn:hover:not(:disabled) { background: var(--secondary-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--primary); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-success { background: var(--success); }
+.btn-success:hover:not(:disabled) { background: #218838; }
+.btn-warning { background: var(--warning); color: #000; }
+.btn-warning:hover:not(:disabled) { background: #e0a800; }
+.btn-danger { background: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: #bd2130; }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--card-hover); }
+.btn-small { padding: 5px 10px; font-size: 13px; }
+.btn-icon { padding: 6px 10px; }
+
+/* ===== ГЛАВНАЯ ===== */
+.categories {
+  display: grid; gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.categories a {
+  display: block; padding: 20px; text-align: center; text-decoration: none;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; transition: background 0.2s;
+}
+.categories a:hover { background: var(--card-hover); }
+.categories a small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+
+.info-block {
+  margin-top: 30px; padding: 20px; border-radius: 10px;
+  background: var(--card); border: 1px solid var(--border); color: var(--muted);
+}
+.info-block .btn { margin-top: 10px; margin-right: 8px; }
+
+.auth-box {
+  max-width: 360px; margin: 18vh auto 0; text-align: center; padding: 40px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--card);
+}
+.auth-box .btn { margin-top: 20px; padding: 10px 30px; }
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 15px;
+  font-size: 12px; color: #fff; background: var(--success);
+}
+.badge-gray { background: var(--secondary); }
+.badge-blue { background: var(--primary); }
+.badge-orange { background: #fd7e14; }
+
+.notice {
+  padding: 10px 14px; margin: 0 0 15px; border-radius: 6px; font-size: 14px;
+  background: #fff3cd; color: #664d03; border: 1px solid #ffecb5;
+}
+[data-theme="dark"] .notice { background: #3d3410; color: #ffe69c; border-color: #665a1a; }
+.notice ul { margin: 6px 0 0 18px; }
+
+/* ===== ТЕСТ: ВОПРОС ===== */
+.question-block { margin-bottom: 30px; }
+.question-block h3 { font-size: 18px; margin-bottom: 15px; font-weight: 500; color: var(--text-strong); }
+.question-text { font-size: 18px; margin-bottom: 8px; color: var(--text); white-space: pre-wrap; }
+.question-hint { font-size: 13px; color: var(--muted); margin-bottom: 15px; }
+
+.count-picker { text-align: center; }
+.count-picker .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+.count-picker input[type="number"] { width: 110px; }
+
+.answers {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+/* Вариант ответа. Кружок (radio) или квадрат (multi) рисуется через ::before */
+.answer {
+  position: relative; display: block; width: 100%; min-height: 50px;
+  padding: 12px 15px 12px 55px; text-align: left; font: inherit; font-size: 16px;
+  color: var(--text); background: var(--bg); cursor: pointer;
+  border: none; border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.answer:last-child { border-bottom: none; }
+.answer:nth-child(even) { background: var(--zebra); }
+.answer:hover:not(:disabled) { background: var(--card-hover); }
+.answer:disabled { cursor: default; }
+.answer::before {
+  content: ''; position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; border: 2px solid #999; border-radius: 50%;
+  background: var(--bg); transition: all 0.2s;
+}
+.answer.multi::before { border-radius: 4px; }
+.answer.selected { background: var(--selected-bg); }
+.answer.selected::before {
+  border-color: var(--selected-accent);
+  box-shadow: inset 0 0 0 3px var(--bg); background: var(--selected-accent);
+}
+.answer.correct { background: var(--correct-bg) !important; color: var(--correct-text); }
+.answer.correct::before { border-color: var(--success); background: var(--success); box-shadow: inset 0 0 0 3px var(--bg); }
+.answer.wrong { background: var(--wrong-bg) !important; color: var(--wrong-text); }
+.answer.wrong::before { border-color: var(--danger); background: var(--danger); }
+/* disabled-кнопки в некоторых браузерах серят текст — возвращаем цвет */
+.answer.correct:disabled { color: var(--correct-text); }
+.answer.wrong:disabled { color: var(--wrong-text); }
+.answer:disabled:not(.correct):not(.wrong) { color: var(--text); }
+
+.explanation {
+  margin-top: 15px; padding: 12px 15px; border-radius: 6px; font-size: 15px;
+  background: var(--card); border-left: 4px solid var(--primary); white-space: pre-wrap;
+}
+
+/* ===== ТЕСТ: НАВИГАЦИЯ ===== */
+.navigation-panel { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+.question-grid { margin-top: 30px; padding: 20px 0; border-top: 1px solid var(--border); }
+.grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.grid-question {
+  width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 14px; border: none; border-radius: 3px; cursor: pointer;
+  background: var(--grid-idle); color: var(--muted); transition: background 0.2s;
+}
+.grid-question:hover { filter: brightness(0.92); }
+.grid-question.answered-correct { background: var(--grid-ok); color: #fff; }
+.grid-question.answered-wrong { background: var(--grid-bad); color: #fff; }
+.grid-question.current { background: var(--current); color: #fff; font-weight: bold; }
+
+/* ===== РЕЗУЛЬТАТЫ ===== */
+.results-container {
+  max-width: 600px; margin: 20px auto; padding: 30px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
+}
+.results-title { text-align: center; font-size: 28px; margin-bottom: 20px; }
+.stat-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 15px; margin-bottom: 10px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--secondary);
+}
+.stat-item.correct { border-left-color: var(--success); }
+.stat-item.wrong { border-left-color: var(--danger); }
+.stat-item.total { border-left-color: var(--primary); font-weight: bold; margin-bottom: 20px; }
+.stat-value { font-size: 18px; color: var(--text-strong); }
+.results-actions { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+
+.review { margin-top: 25px; }
+.review details { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.review summary { padding: 10px 14px; cursor: pointer; }
+.review .review-body { padding: 0 14px 12px; font-size: 14px; }
+.review .ok { color: var(--success); }
+.review .bad { color: var(--danger); }
+
+/* ===== АДМИНКА ===== */
+.admin-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.panel h3 { margin-bottom: 10px; font-size: 16px; color: var(--text-strong); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+
+.disc-item {
+  display: block; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  padding: 10px 12px; margin-bottom: 6px; border-radius: 6px;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+}
+.disc-item:hover { background: var(--card-hover); }
+.disc-item.active { border-color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
+.disc-item small { display: block; color: var(--muted); }
+
+label.field { display: block; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+label.field > input, label.field > textarea { margin-top: 4px; }
+input[type="text"], input[type="number"], textarea, select {
+  width: 100%; padding: 8px 10px; font: inherit; font-size: 15px;
+  color: var(--text); background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+textarea { resize: vertical; min-height: 60px; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 0; }
+
+.answer-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.answer-row input[type="checkbox"] { width: 20px; height: 20px; flex: none; cursor: pointer; }
+.form-errors { color: var(--danger); font-size: 14px; margin: 8px 0; }
+.form-errors:empty { display: none; }
+.hint { font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+
+.q-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.q-item:last-child { border-bottom: none; }
+.q-item details { flex: 1; min-width: 0; }
+.q-item summary { cursor: pointer; overflow-wrap: anywhere; }
+.q-item ul { margin: 6px 0 0 20px; font-size: 14px; }
+.q-item li.is-correct { color: var(--success); font-weight: 600; }
+.q-num { color: var(--muted); min-width: 34px; text-align: right; font-size: 13px; padding-top: 2px; }
+
+textarea.mono { font-family: Consolas, 'Courier New', monospace; font-size: 14px; min-height: 160px; }
+details.panel > summary { cursor: pointer; font-weight: 600; color: var(--text-strong); }
+details.panel[open] > summary { margin-bottom: 10px; }
+
+.toast {
+  position: fixed; left: 20px; bottom: 20px; max-width: 80vw; z-index: 10000;
+  padding: 12px 18px; border-radius: 6px; color: #fff; background: #333; box-shadow: var(--shadow);
+}
+.toast.error { background: var(--danger); }
+.toast.ok { background: var(--success); }
+
+/* ===== КНОПКА ТЕМЫ ===== */
+.theme-toggle-btn {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  background: #333; color: #fff; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+}
+.theme-toggle-btn:hover { transform: scale(1.1); }
+[data-theme="dark"] .theme-toggle-btn { background: #f0f0f0; color: #333; }
+
+/* ===== МОБИЛЬНЫЕ ===== */
+@media (max-width: 768px) {
+  .container { padding: 14px; }
+  .admin-layout { grid-template-columns: 1fr; }
+  .answer { padding: 12px 12px 12px 45px; font-size: 15px; }
+  .navigation-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .navigation-panel .finish-btn, .navigation-panel .home-btn { grid-column: span 2; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); }
+  .grid-question { width: 100%; height: 40px; }
+  .results-container { padding: 18px; }
+}
