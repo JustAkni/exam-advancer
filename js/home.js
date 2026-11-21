@@ -30,9 +30,10 @@
 
   function renderHome() {
     clear(app);
-    app.appendChild(el('div', { style: 'text-align:right;margin-bottom:10px' },
-      el('span', { class: 'badge', text: T.accessActive })));
-    app.appendChild(el('h1', { text: T.chooseSection }));
+    app.appendChild(el('div', { class: 'info-card fade-in' },
+      el('div', { style: 'float:right' }, el('span', { class: 'badge', text: T.accessActive })),
+      el('h1', { class: 'main-title', text: T.chooseSection }),
+      el('p', { class: 'muted', text: T.chooseHint })));
 
     var holder = el('div', { text: '…', class: 'muted' });
     app.appendChild(holder);
@@ -53,13 +54,14 @@
           }))
         : el('div', { class: 'info-block', style: 'margin-top:0' },
             el('p', { text: T.noDisciplines }),
-            cfg.ADMIN_ENABLED ? el('a', { class: 'btn btn-primary', href: 'admin.html', text: T.openEditor }) : null);
+            el('a', { class: 'btn btn-primary', href: 'compiler.html', text: '🧩 Создать тест из текста' }),
+            cfg.ADMIN_ENABLED ? el('a', { class: 'btn btn-ghost', href: 'admin.html', text: T.openEditor }) : null);
 
       holder.replaceWith(el('div', null, notice, content));
     });
 
     app.appendChild(el('div', { class: 'info-block' },
-      el('p', { text: T.chooseHint }),
+      el('a', { class: 'btn btn-primary', href: 'compiler.html', text: '🧩 Компилятор тестов' }),
       cfg.ADMIN_ENABLED ? el('a', { class: 'btn btn-ghost', href: 'admin.html', text: T.editorLink }) : null,
       cfg.AUTH_ENABLED ? el('button', {
         class: 'btn', type: 'button', text: T.logoutBtn,

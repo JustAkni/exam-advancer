@@ -44,12 +44,14 @@
     try { stored = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
     if (stored === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
 
-    if (!document.getElementById('themeToggle')) {
-      document.body.appendChild(el('button', {
-        id: 'themeToggle', class: 'theme-toggle-btn', type: 'button',
-        onclick: function () { apply(!isDark()); }
-      }));
+    var btn = document.getElementById('themeToggle');
+    if (!btn) {
+      /* запасной вариант: шапки (layout.js) нет — рисуем плавающую кнопку */
+      btn = el('button', { id: 'themeToggle', class: 'nav-btn', type: 'button',
+        style: 'position:fixed;right:16px;bottom:16px;z-index:9999;background:var(--card);box-shadow:var(--shadow)' });
+      document.body.appendChild(btn);
     }
+    btn.addEventListener('click', function () { apply(!isDark()); });
     updateButton();
   }
 

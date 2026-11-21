@@ -305,6 +305,10 @@
   /* Принимает: резервную копию, одну дисциплину, массив дисциплин
      ИЛИ старый формат { pccontroller: [вопросы], philosophy: [...] }. */
   function toDisciplineList(obj) {
+    /* просто массив вопросов [{question, answers}] (его делает компилятор) */
+    if (Array.isArray(obj) && obj.length && obj[0] && typeof obj[0] === 'object' && 'question' in obj[0]) {
+      return [{ id: '', title: 'Импортированные вопросы', questions: obj }];
+    }
     if (Array.isArray(obj)) return obj;
     if (obj && Array.isArray(obj.disciplines)) return obj.disciplines;
     if (obj && Array.isArray(obj.questions)) return [obj];
@@ -386,7 +390,77 @@
     return { questions: questions, errors: errors };
   }
 
+  /* ---------- сырой текст с тегами → вопросы (компилятор тестов) ----------
+       <question> Текст вопроса
+       <variant> Вариант 1      ← по умолчанию ПЕРВЫЙ вариант правильный
+       <variant> Вариант 2
+       <question> Следующий вопрос …
+     Теги можно писать и в одну строку, и на отдельных строках; регистр не важен.
+     Если после последнего <variant> стоит <question> — начинается новый вопрос.
+     opts.firstCorrect — сколько ПЕРВЫХ вариантов считать правильными (по умолчанию 1).
+     Тег <right> вместо <variant> явно помечает правильный вариант: если в вопросе
+     есть хотя бы один <right>, правилом «первые N» этот вопрос не обрабатывается. */
+  function parseTagged(text, opts) {
+    var firstCorrect = Math.max(1, parseInt(opts && opts.firstCorrect, 10) || 1);
+    var src = String(text || '').replace(/\r\n?/g, '\n').replace(/<\/\s*(question|variant|right)\s*>/gi, '');
+    var re = /<\s*(question|variant|right)\s*>/gi, m, marks = [];
+    while ((m = re.exec(src))) marks.push({ tag: m[1].toLowerCase(), start: m.index, end: re.lastIndex });
+
+    var questions = [], errors = [], cur = null, qNo = 0;
+    function clean(t) { return t.replace(/\s*\n\s*/g, ' ').replace(/[ \t]{2,}/g, ' ').trim(); }
+
+    function flush() {
+      if (!cur) return;
+      var q = cur; cur = null;
+      var label = '№' + q.no + ' «' + q.text.slice(0, 45) + (q.text.length > 45 ? '…' : '') + '»';
+      if (!q.text) { errors.push('Вопрос ' + label + ': пустой текст вопроса.'); return; }
+      if (q.variants.length < 2) { errors.push('Вопрос ' + label + ': нужно минимум 2 варианта (найдено ' + q.variants.length + ').'); return; }
+      var explicit = q.variants.some(function (v) { return v.right; });
+      var n = Math.min(firstCorrect, q.variants.length - 1);
+      if (!explicit && firstCorrect >= q.variants.length) {
+        errors.push('Вопрос ' + label + ': вариантов меньше или поровну с числом правильных (' + firstCorrect + ') — правильным оставлен только первый.');
+        n = 1;
+      }
+      var answers = q.variants.map(function (v, i) {
+        return { text: v.text, correct: explicit ? v.right : i < n };
+      });
+      if (answers.some(function (a) { return !a.text; })) {
+        errors.push('Вопрос ' + label + ': есть пустой вариант — он пропущен.');
+        answers = answers.filter(function (a) { return a.text; });
+        if (answers.length < 2 || !answers.some(function (a) { return a.correct; })) return;
+      }
+      questions.push({ question: q.text, answers: answers });
+    }
+
+    if (marks.length && src.slice(0, marks[0].start).trim()) {
+      errors.push('Текст до первого тега проигнорирован: «' + src.slice(0, marks[0].start).trim().slice(0, 40) + '…»');
+    }
+    marks.forEach(function (mk, i) {
+      var body = clean(src.slice(mk.end, i + 1 < marks.length ? marks[i + 1].start : src.length));
+      if (mk.tag === 'question') { flush(); cur = { no: ++qNo, text: body, variants: [] }; }
+      else if (cur) cur.variants.push({ text: body, right: mk.tag === 'right' });
+      else errors.push('<' + mk.tag + '> до первого <question> проигнорирован.');
+    });
+    flush();
+    if (!marks.length) errors.push('Не найдено ни одного тега <question> / <variant>.');
+    return { questions: questions, errors: errors, total: qNo };
+  }
+
+  /* Добавляет вопросы к дисциплине (создаёт её, если id новый). dedupe — убрать точные повторы. */
+  function appendQuestions(id, title, questions, dedupe) {
+    var base = get(id), raw = base ? toRaw(base) : { id: id, title: title || id, description: '', questions: [] };
+    raw.questions = raw.questions.concat(questions);
+    if (title && !base) raw.title = title;
+    if (dedupe) {
+      var n = normalizeDiscipline(raw);
+      if (n.discipline) { n.discipline.questions = removeDuplicates(n.discipline.questions); raw = toRaw(n.discipline); }
+    }
+    return saveDiscipline(raw);
+  }
+
   Quiz.store = {
+    parseTagged: parseTagged, appendQuestions: appendQuestions,
+    buildDiscipline: function (raw) { var n = normalizeDiscipline(raw); return n.discipline || null; },
     load: load, all: all, get: get, hasFile: hasFile, warnings: warnings, uniqueId: uniqueId,
     isValidId: isValidId, checkQuestion: checkQuestion, removeDuplicates: removeDuplicates,
     saveDiscipline: saveDiscipline, removeLocal: removeLocal,

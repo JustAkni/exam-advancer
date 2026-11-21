@@ -2,24 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- [НЕ УДАЛЯТЬ] viewport: без него медиа-запросы для телефона в style.css не сработают
-         (в старой версии этой строки не было). -->
+    <!-- [НЕ УДАЛЯТЬ] viewport: без него медиа-запросы для телефона в style.css не сработают. -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Тесттер</title>
+    <title>Esil Study | Тесты</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css">
     <!-- [НЕ УДАЛЯТЬ] применяет тему до отрисовки (нет белой вспышки). Ключ 'theme' = Quiz.config.KEYS.theme -->
     <script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 </head>
 <body>
     <!-- [НЕ УДАЛЯТЬ] id="app": home.js рисует главную именно сюда.
-         Кнопку темы здесь добавлять не нужно — её создаёт theme.js. -->
+         Шапку и кнопку темы создаёт js/layout.js. -->
     <div class="container" id="app"></div>
 
-    <!-- [ПОРЯДОК ВАЖЕН] config → utils → store → theme → auth → скрипт страницы.
-         Новый общий скрипт добавляйте ПОСЛЕ auth.js и ДО скрипта страницы. -->
+    <!-- [ПОРЯДОК ВАЖЕН] config → utils → store → layout → theme → auth → скрипт страницы. -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/store.js"></script>
+    <script src="js/layout.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/home.js"></script>

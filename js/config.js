@@ -26,7 +26,7 @@
   };
 
   Quiz.config = {
-    SITE_TITLE: 'Тесттер',
+    SITE_TITLE: 'Esil Study',
 
     /* Вход по кнопке «Зайти».
        [ВАЖНО] Это НЕ защита: флаг лежит в localStorage, а файлы с вопросами
@@ -48,9 +48,15 @@
     DATA_VERSION: '1',
 
     /* Тест */
-    COUNT_PRESETS: [10, 30, 50, 100], // кнопки «выбрать количество вопросов»
+    COUNT_PRESETS: [20, 40, 80, 160], // кнопки «выбрать количество вопросов»
     SHUFFLE_QUESTIONS: true,
     SHUFFLE_ANSWERS: true,
+
+    /* Таймер: диапазон минут и шаг ползунка. Для больших тестов
+       (≥ BIG_TEST вопросов) максимум увеличивается до TIMER_MAX_BIG. */
+    TIMER_MIN: 5, TIMER_MAX: 60, TIMER_MAX_BIG: 120, TIMER_STEP: 5, TIMER_DEFAULT: 20,
+    TIMER_PRESETS: [10, 20, 30, 45, 60],
+    BIG_TEST: 160,
 
     /* [НЕ МЕНЯТЬ без миграции] Ключи localStorage.
        'isLoggedIn' и 'theme' — те же, что были в старой версии, поэтому
@@ -88,7 +94,7 @@
       question: 'Вопрос',
       of: 'из',
       multiHint: 'Выберите все правильные ответы',
-      check: 'Проверить',
+      check: 'Подтвердить ответ',
       prev: '← Предыдущий',
       next: 'Следующий →',
       finish: 'Завершить тест',
@@ -104,7 +110,37 @@
       review: 'Разбор ошибок',
       yourAnswer: 'Ваш ответ:',
       rightAnswer: 'Правильно:',
-      noAnswer: '— нет ответа —'
+      noAnswer: '— нет ответа —',
+
+      setupTitle: '⚙️ Настройка теста',
+      timerTitle: '⏱️ Таймер',
+      timerOn: 'Включить таймер',
+      timerHint: 'Выберите время',
+      minWord: 'мин',
+      examTitle: '🎓 Настоящий экзамен',
+      examOn: 'Режим «Настоящий экзамен»',
+      examHelp: 'Правильные и неправильные ответы не показываются, ответы можно менять в любой момент. Результат и разбор — только после завершения теста.',
+      startBtn: '🚀 Начать тест',
+      pickFirst: '← Сначала выберите количество вопросов',
+      examBadge: '🎓 Экзамен',
+      timeLeft: 'Осталось',
+      timeOut: '⏰ Время вышло!',
+      answeredWord: 'Отвечено:',
+      finishExam: 'Завершить экзамен',
+      finishExamConfirm: 'Без ответа осталось вопросов: ',
+      finishExamConfirm2: '. Завершить экзамен? После этого ответы изменить нельзя.',
+      clearAnswer: 'Сбросить ответ',
+      usedTime: '🕐 Затрачено:',
+      chosenTime: '⏱️ Выбранное время:',
+      timeLeftEnd: '⏳ Осталось:',
+      reviewAll: 'Все вопросы',
+      reviewWrong: 'Только ошибки',
+      reviewTitle: 'Разбор вопросов',
+      okWord: 'Верно',
+      badWord: 'Неверно',
+      skipWord: 'Нет ответа',
+      examResult: '🎓 Результат экзамена',
+      navLabel: 'Навигация по вопросам'
     }
   };
 })();

@@ -82,5 +82,12 @@
     setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 10000);
   }
 
-  Quiz.u = { el: el, clear: clear, shuffle: shuffle, hash: hash, slugify: slugify, download: download };
+  /* add(node, a, [b, c], null, 'текст') — добавляет детей, пропуская null/false и разворачивая массивы.
+     [НЕ ЗАМЕНЯТЬ на node.append(): он печатает слово «null» и не понимает массивы]. */
+  function add(node) {
+    for (var i = 1; i < arguments.length; i++) append(node, arguments[i]);
+    return node;
+  }
+
+  Quiz.u = { add: add, el: el, clear: clear, shuffle: shuffle, hash: hash, slugify: slugify, download: download };
 })();
