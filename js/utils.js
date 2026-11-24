@@ -89,5 +89,22 @@
     return node;
   }
 
-  Quiz.u = { add: add, el: el, clear: clear, shuffle: shuffle, hash: hash, slugify: slugify, download: download };
+  /* choose(заголовок, текст, [{label, value, cls}]) → Promise со value нажатой кнопки (null — окно закрыли).
+     Красивая замена confirm() с несколькими вариантами. */
+  function choose(title, text, buttons) {
+    return new Promise(function (resolve) {
+      var back;
+      function done(v) { back.remove(); resolve(v); }
+      back = el('div', { class: 'sheet-back', onclick: function (e) { if (e.target === back) done(null); } },
+        el('div', { class: 'sheet framed' },
+          el('h3', { text: title }),
+          el('p', { text: text, style: 'white-space:pre-wrap;margin-bottom:16px' }),
+          el('div', { class: 'toolbar', style: 'margin:0' }, buttons.map(function (b) {
+            return el('button', { class: 'btn ' + (b.cls || 'btn-ghost'), type: 'button', text: b.label, onclick: function () { done(b.value); } });
+          }))));
+      document.body.appendChild(back);
+    });
+  }
+
+  Quiz.u = { add: add, choose: choose, el: el, clear: clear, shuffle: shuffle, hash: hash, slugify: slugify, download: download };
 })();

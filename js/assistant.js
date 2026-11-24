@@ -49,7 +49,7 @@
     controls = el('div', { class: 'assistant-controls hidden' }, bAlign, bBg, bOp);
     popup = el('div', { class: 'assistant-popup hidden' });
     document.body.appendChild(el('div', { class: 'assistant-bubble' }, controls, popup,
-      el('button', { class: 'assistant-toggle', type: 'button', title: 'Ассистент', text: '🤖', onclick: function () {
+      el('button', { class: 'assistant-toggle', type: 'button', title: 'Ассистент', text: '🎸', onclick: function () {
         st.open = !st.open;
         controls.classList.toggle('hidden', !st.open);
         popup.classList.toggle('hidden', !st.open);

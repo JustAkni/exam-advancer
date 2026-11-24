@@ -1,13 +1,13 @@
 /* =====================================================================
    js/store.js — ВСЯ работа с данными (дисциплины и вопросы).
-   Страницы (index / quiz / admin) НЕ читают файлы и localStorage сами —
+   Страницы (index / quiz / compiler) НЕ читают файлы и localStorage сами —
    только через Quiz.store. Благодаря этому формат хранения можно менять
    (например, перейти на сервер), не трогая остальной код.
 
    ОТКУДА БЕРУТСЯ ДАННЫЕ
    1) Файлы:  data/manifest.js  →  список id,
               data/disciplines/<id>.js  →  сами вопросы.
-   2) Браузер (localStorage): то, что создано/исправлено в admin.html.
+   2) Браузер (localStorage): то, что создано в compiler.html.
       Если id совпадает с файловой дисциплиной — «правка» перекрывает файл
       (origin = 'override'); новый id — «локальная» (origin = 'local').
 
@@ -319,14 +319,33 @@
     return [];
   }
 
-  function importData(obj) {
+  /* Какие id из файла уже есть у пользователя (для вопроса «заменить / объединить / копия»). */
+  function conflicts(obj) {
+    return toDisciplineList(obj).map(function (raw) {
+      var id = str(raw && raw.id) || u.slugify(raw && raw.title) || '';
+      return get(id);
+    }).filter(Boolean).map(function (d) { return d.title; });
+  }
+
+  /* mode: 'replace' (по умолчанию) — заменить дисциплину с тем же id;
+           'merge'   — добавить вопросы к существующей (точные повторы убираются);
+           'copy'    — сохранить рядом под новым id. */
+  function importData(obj, mode) {
     var list = toDisciplineList(obj), skipped = [], count = 0;
     var data = readLocal();
     list.forEach(function (raw) {
       var r = Object.assign({}, raw);
       if (!str(r.id)) r.id = u.slugify(r.title) || 'discipline';
+      var ex = get(r.id);
+      if (ex && mode === 'copy') { r.id = uniqueId(r.id); r.title = (str(r.title) || r.id) + ' (копия)'; }
+      else if (ex && mode === 'merge') {
+        var old = toRaw(ex);
+        r.questions = old.questions.concat(Array.isArray(r.questions) ? r.questions : []);
+        r.title = old.title; r.description = old.description;
+      }
       var n = normalizeDiscipline(r);
       if (n.error) { skipped.push(n.error); return; }
+      if (ex && mode === 'merge') n.discipline.questions = removeDuplicates(n.discipline.questions);
       data.disciplines[n.discipline.id] = toRaw(n.discipline);
       count++;
     });
@@ -334,6 +353,63 @@
     var w = writeLocal(data);
     if (w.ok) merge();
     return { ok: w.ok, imported: count, skipped: skipped, error: w.error };
+  }
+
+  /* ---------- чтение файла дисциплины .js БЕЗ выполнения кода ----------
+     Файл вида  (window.QUIZ_DATA = …).push({ id: "…", title: "…", questions: [ … ] });
+     Берём объект внутри push( … ), аккуратно превращаем его в JSON (ключи без кавычек,
+     одинарные кавычки, комментарии, лишние запятые) и разбираем JSON.parse.
+     Чужой .js никогда не запускается — поэтому его безопасно импортировать. */
+  function jsLiteralToJson(src, from) {
+    var n = src.length, i = from, depth = 0, out = '';
+    function skipWs(j) {
+      while (j < n) {
+        var c = src.charAt(j);
+        if (/\s/.test(c)) j++;
+        else if (c === '/' && src.charAt(j + 1) === '/') { while (j < n && src.charAt(j) !== '\n') j++; }
+        else if (c === '/' && src.charAt(j + 1) === '*') { var e = src.indexOf('*/', j + 2); j = e < 0 ? n : e + 2; }
+        else break;
+      }
+      return j;
+    }
+    for (;;) {
+      i = skipWs(i);
+      if (i >= n) throw new Error('файл оборван: не найдена закрывающая скобка');
+      var ch = src.charAt(i);
+      if (ch === '{' || ch === '[') { depth++; out += ch; i++; }
+      else if (ch === '}' || ch === ']') { depth--; out += ch; i++; if (depth === 0) return out; }
+      else if (ch === ',') { var j = skipWs(i + 1); if (src.charAt(j) === '}' || src.charAt(j) === ']') i = j; else { out += ','; i++; } }
+      else if (ch === ':') { out += ':'; i++; }
+      else if (ch === '"' || ch === "'") {
+        var q = ch, str2 = ''; i++;
+        while (i < n && src.charAt(i) !== q) {
+          var c2 = src.charAt(i);
+          if (c2 === '\\') { var nx = src.charAt(i + 1); str2 += nx === "'" ? "'" : '\\' + nx; i += 2; }
+          else { str2 += c2 === '"' ? '\\"' : c2 === '\n' ? '\\n' : c2 === '\r' ? '' : c2; i++; }
+        }
+        out += '"' + str2 + '"'; i++;
+      } else if (/[A-Za-z_$]/.test(ch)) {
+        var m = /^[A-Za-z_$][\w$]*/.exec(src.slice(i))[0], k = skipWs(i + m.length);
+        if (src.charAt(k) === ':') out += '"' + m + '"';
+        else if (m === 'true' || m === 'false' || m === 'null') out += m;
+        else throw new Error('неожиданное слово «' + m + '» — файл содержит код, а не данные');
+        i += m.length;
+      } else if (/[-+0-9.]/.test(ch)) {
+        var num = /^[-+0-9.eE]+/.exec(src.slice(i))[0]; out += num; i += num.length;
+      } else throw new Error('неожиданный символ «' + ch + '»');
+    }
+  }
+
+  function parseDisciplineJs(text) {
+    var src = String(text || '');
+    var p = src.indexOf('.push(');
+    var b = p < 0 ? -1 : src.indexOf('{', p);
+    if (b < 0) throw new Error('Это не файл дисциплины: не найдено «(window.QUIZ_DATA = …).push({…})».');
+    var raw;
+    try { raw = JSON.parse(jsLiteralToJson(src, b)); }
+    catch (e) { throw new Error('Не удалось прочитать файл: ' + e.message); }
+    if (!raw || !Array.isArray(raw.questions)) throw new Error('В файле нет списка questions.');
+    return raw;
   }
 
   function exportAll() {
@@ -345,7 +421,7 @@
     var r = toRaw(d);
     var safeTitle = String(r.title).replace(/\*\//g, '* /').replace(/[\r\n]+/g, ' ');
     var lines = r.questions.map(function (q) { return '    ' + JSON.stringify(q); });
-    return '/* Дисциплина: ' + safeTitle + '. Создано в admin.html.\n' +
+    return '/* Дисциплина: ' + safeTitle + '. Создано в compiler.html.\n' +
       '   Положите файл в ' + cfg.DATA_DIR + r.id + '.js и добавьте "' + r.id + '" в ' + cfg.MANIFEST_FILE + '.\n' +
       '   [НЕ УДАЛЯТЬ] обёртку (window.QUIZ_DATA = …push) — по ней store.js находит дисциплину. */\n' +
       '(window.QUIZ_DATA = window.QUIZ_DATA || []).push({\n' +
@@ -464,7 +540,7 @@
     load: load, all: all, get: get, hasFile: hasFile, warnings: warnings, uniqueId: uniqueId,
     isValidId: isValidId, checkQuestion: checkQuestion, removeDuplicates: removeDuplicates,
     saveDiscipline: saveDiscipline, removeLocal: removeLocal,
-    importData: importData, exportAll: exportAll,
+    importData: importData, conflicts: conflicts, parseDisciplineJs: parseDisciplineJs, exportAll: exportAll,
     serializeFile: serializeFile, serializeManifest: serializeManifest, parseBulk: parseBulk,
     _toRaw: toRaw // для служебных скриптов
   };

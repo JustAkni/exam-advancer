@@ -7,12 +7,11 @@
     <title>Тест</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="css/style.css">
-    <!-- [НЕ УДАЛЯТЬ] применяет тему до отрисовки (нет белой вспышки). Ключ 'theme' = Quiz.config.KEYS.theme -->
-    <script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
+    <!-- [НЕ УДАЛЯТЬ] до отрисовки применяет тему (ключ 'theme'), дизайн (ключ 'design') и включает «занавес» после перехода (ключ 'pt', см. js/transition.js). -->
+    <script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark');if(localStorage.getItem('design')==='classic')document.documentElement.setAttribute('data-design','classic');if(sessionStorage.getItem('pt')){sessionStorage.removeItem('pt');document.documentElement.classList.add('pt-arrive')}}catch(e){}</script>
 </head>
-<body>
-    <!-- [НЕ УДАЛЯТЬ] #quiz-wrapper (его меняет ассистент), #categoryTitle и #quiz — их ищут assistant.js и quiz.js.
-         Шапку и кнопку темы создаёт js/layout.js. -->
+<body class="scene-class">
+    <!-- [НЕ УДАЛЯТЬ] #quiz-wrapper (его меняет ассистент), #categoryTitle и #quiz — их ищут assistant.js и quiz.js. -->
     <div id="quiz-wrapper" class="layout-center">
         <div class="container">
             <h2 id="categoryTitle"></h2>
@@ -20,13 +19,13 @@
         </div>
     </div>
 
-    <!-- [ПОРЯДОК ВАЖЕН] config → utils → store → layout → theme → auth → (assistant) → скрипт страницы. -->
+    <!-- [ПОРЯДОК ВАЖЕН] config → utils → store → layout → theme → transition → (assistant) → скрипт страницы. -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/store.js"></script>
     <script src="js/layout.js"></script>
     <script src="js/theme.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/transition.js"></script>
     <script src="js/assistant.js"></script>
     <script src="js/quiz.js"></script>
 </body>

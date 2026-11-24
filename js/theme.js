@@ -1,5 +1,8 @@
 /* =====================================================================
-   js/theme.js — светлая/тёмная тема + кнопка 🌙/☀️. Один файл на ВСЕ страницы.
+   js/theme.js — светлая/тёмная тема (кнопка 🌙/☀️) и переключатель ДИЗАЙНА
+   (кнопка рядом: 🕰️ — включить старый красно-белый дизайн, 🪵 — вернуть новый).
+   Один файл на ВСЕ страницы. Дизайн — это атрибут <html data-design="classic">;
+   страницы и функции те же, меняется только CSS (блок «КЛАССИЧЕСКИЙ ДИЗАЙН» в style.css).
 
    Как это работает: на <html> ставится атрибут data-theme="dark", а в
    css/style.css цвета берутся из переменных (:root / [data-theme="dark"]).
@@ -19,7 +22,7 @@
 (function () {
   'use strict';
   Quiz.need('config', 'u');
-  var KEY = Quiz.config.KEYS.theme;
+  var KEY = Quiz.config.KEYS.theme, DKEY = Quiz.config.KEYS.design;
   var el = Quiz.u.el;
 
   function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -39,6 +42,21 @@
     updateButton();
   }
 
+  function isClassic() { return document.documentElement.getAttribute('data-design') === 'classic'; }
+  function updateDesignButton() {
+    var b = document.getElementById('designToggle');
+    if (!b) return;
+    b.textContent = isClassic() ? '🪵' : '🕰️';
+    b.title = isClassic() ? 'Вернуть новый дизайн' : 'Старый дизайн (красно-белый)';
+    b.setAttribute('aria-label', b.title);
+  }
+  function applyDesign(classic) {
+    if (classic) document.documentElement.setAttribute('data-design', 'classic');
+    else document.documentElement.removeAttribute('data-design');
+    try { localStorage.setItem(DKEY, classic ? 'classic' : 'new'); } catch (e) { /* приватный режим */ }
+    updateDesignButton();
+  }
+
   function init() {
     var stored = null;
     try { stored = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
@@ -53,9 +71,13 @@
     }
     btn.addEventListener('click', function () { apply(!isDark()); });
     updateButton();
+
+    var db = document.getElementById('designToggle');
+    if (db) db.addEventListener('click', function () { applyDesign(!isClassic()); });
+    updateDesignButton();
   }
 
-  Quiz.theme = { apply: apply, toggle: function () { apply(!isDark()); }, isDark: isDark, init: init };
+  Quiz.theme = { applyDesign: applyDesign, isClassic: isClassic, apply: apply, toggle: function () { apply(!isDark()); }, isDark: isDark, init: init };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

@@ -1,8 +1,10 @@
 /* =====================================================================
-   js/layout.js — верхняя шапка (hot-bar) на всех страницах.
-   Один файл вместо копирования HTML шапки в каждую страницу.
-   Подключается ПОСЛЕ store.js и ДО theme.js (theme.js цепляет обработчик
-   к кнопке #themeToggle, которую создаёт этот файл).
+   js/layout.js — общие элементы страницы:
+   • две круглые кнопки в правом верхнем углу: 🕰️/🎸 (дизайн) и 🌙/☀️ (тема);
+   • верхняя шапка (hot-bar) с навигацией — её видно ТОЛЬКО в старом дизайне
+     (в новом она скрыта через CSS, навигация там — записки на доске).
+   Подключается ПОСЛЕ store.js и ДО theme.js: theme.js цепляет обработчики
+   к кнопкам #themeToggle и #designToggle, которые создаёт этот файл.
    ===================================================================== */
 (function () {
   'use strict';
@@ -10,23 +12,21 @@
   var cfg = Quiz.config, el = Quiz.u.el;
 
   function build() {
-    if (document.querySelector('.hot-bar')) return;
+    if (document.getElementById('themeToggle')) return;
     var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-
     function link(href, text) {
       return el('a', { class: 'nav-btn-text' + (page === href ? ' active' : ''), href: href, text: text });
     }
-    var bar = el('header', { class: 'hot-bar' },
+    document.body.insertBefore(el('header', { class: 'hot-bar' },
       el('a', { class: 'logo-area', href: cfg.HOME_PAGE, text: cfg.SITE_TITLE }),
       el('nav', { class: 'top-nav-links' },
         link('index.html', '🏠 Главный экран'),
         link('compiler.html', '🧩 Компилятор тестов'),
-        cfg.ADMIN_ENABLED ? link('admin.html', '✏️ Редактор') : null),
-      el('div', { class: 'nav-actions' },
-        el('button', { id: 'themeToggle', class: 'nav-btn', type: 'button', title: 'Сменить тему' })));
-    document.body.insertBefore(bar, document.body.firstChild);
-  }
+        link('admin.html', '✏️ Редактор'))), document.body.firstChild);
 
+    document.body.appendChild(el('button', { id: 'designToggle', class: 'fab fab-design', type: 'button' }));
+    document.body.appendChild(el('button', { id: 'themeToggle', class: 'fab', type: 'button', title: 'Сменить тему' }));
+  }
   if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
   Quiz.layout = { build: build };
 })();

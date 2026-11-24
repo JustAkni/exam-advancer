@@ -6,8 +6,10 @@
    • у вопроса любое число вариантов; галочками отмечаются ПРАВИЛЬНЫЕ
      (одна галочка — обычный вопрос, несколько — множественный выбор);
    • массовое добавление из текста (формат ? + - !);
-   • резервная копия и импорт JSON (понимает и старый формат вопросов);
-   • скачать файл дисциплины и manifest.js для публикации на сайт.
+   • ОБМЕН ФАЙЛАМИ: .json — все ваши дисциплины сразу (резервная копия / перенос),
+     .js — одна выбранная дисциплина (отправить другу, получить чужую, опубликовать в data/);
+     при импорте, если такая дисциплина уже есть, можно заменить / объединить / сохранить копией;
+   • скачать manifest.js для публикации на сайт.
 
    ГДЕ ХРАНИТСЯ ТО, ЧТО ВЫ СДЕЛАЛИ В РЕДАКТОРЕ
    Только в localStorage ЭТОГО браузера. Другие пользователи этого не видят,
@@ -17,8 +19,8 @@
    [НЕ УДАЛЯТЬ]
    • Всё чтение/запись — только через Quiz.store. Не обращайтесь к
      localStorage напрямую: ломается формат и миграции.
-   • Quiz.auth.guard() и проверка ADMIN_ENABLED — чтобы редактор не был
-     доступен там, где вы его отключили (это не защита, см. config.js).
+   • Импорт .js идёт через store.parseDisciplineJs — чужой код НЕ выполняется.
+     Не заменяйте его на eval / <script>.
    • Перерисовка делается целиком (render()). Не вешайте состояние на DOM —
      держите его в `state`, иначе оно пропадёт при следующей перерисовке.
 
@@ -28,13 +30,11 @@
    ===================================================================== */
 (function () {
   'use strict';
-  Quiz.need('config', 'u', 'store', 'theme', 'auth');
-  if (!Quiz.auth.guard()) return;
+  Quiz.need('config', 'u', 'store', 'theme');
 
   var cfg = Quiz.config, store = Quiz.store, u = Quiz.u;
   var el = u.el, clear = u.clear;
 
-  if (!cfg.ADMIN_ENABLED) { window.location.replace(cfg.HOME_PAGE); return; }
   var app = document.getElementById('admin');
   if (!app) { console.error('admin.js: в admin.html не найден #admin'); return; }
 
@@ -89,37 +89,52 @@
   }
 
   function renderTop() {
-    var fileInput = el('input', { type: 'file', accept: '.json,application/json', class: 'hidden' });
-    fileInput.addEventListener('change', function () {
-      var f = fileInput.files && fileInput.files[0];
-      if (f) importFile(f);
-      fileInput.value = '';
-    });
+    var d = current(), stamp = new Date().toISOString().slice(0, 10);
+    function picker(accept, handler) {
+      var inp = el('input', { type: 'file', accept: accept, class: 'hidden' });
+      inp.addEventListener('change', function () { var f = inp.files && inp.files[0]; if (f) handler(f); inp.value = ''; });
+      return inp;
+    }
+    var allIn = picker('.json,application/json', importFile);
+    var oneIn = picker('.js,.json,text/javascript,application/json', importFile);
+
     return el('div', null,
-      el('h1', { text: '✏️ Редактор дисциплин' }),
-      el('div', { class: 'toolbar' },
-        el('a', { class: 'btn btn-ghost', href: cfg.HOME_PAGE, text: '← На главную' }),
-        el('button', {
-          class: 'btn btn-ghost', type: 'button', text: '⬇ Резервная копия (JSON)',
-          onclick: function () { u.download('quiz-backup-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(store.exportAll(), null, 2), 'application/json'); }
-        }),
-        el('button', { class: 'btn btn-ghost', type: 'button', text: '⬆ Импорт JSON', onclick: function () { fileInput.click(); } }),
-        el('button', {
-          class: 'btn btn-ghost', type: 'button', text: '⬇ manifest.js',
-          onclick: function () { u.download('manifest.js', store.serializeManifest(), 'text/javascript'); }
-        }),
-        fileInput
-      ),
+      el('div', { class: 'info-card' },
+        el('h1', { text: '✏️ Редактор дисциплин' }),
+        el('div', { class: 'toolbar', style: 'margin:8px 0 0' },
+          el('a', { class: 'btn btn-ghost btn-small', href: cfg.HOME_PAGE, text: '← В меню' }),
+          el('a', { class: 'btn btn-ghost btn-small', href: 'compiler.html', text: '🧩 Компилятор тестов' }))),
+
+      el('div', { class: 'panel' },
+        el('h3', { text: '📦 Обмен файлами' }),
+        el('div', { class: 'exchange' },
+          el('div', null,
+            el('b', { text: 'Все мои дисциплины — .json' }),
+            el('p', { class: 'hint', text: 'Резервная копия и перенос на другое устройство: в файл попадают ВСЕ дисциплины, которые у вас есть.' }),
+            el('div', { class: 'toolbar' },
+              el('button', { class: 'btn btn-primary', type: 'button', text: '⬇ Экспорт всех (.json)',
+                onclick: function () { u.download('exam-advancer-' + stamp + '.json', JSON.stringify(store.exportAll(), null, 2), 'application/json'); } }),
+              el('button', { class: 'btn btn-ghost', type: 'button', text: '⬆ Импорт (.json)', onclick: function () { allIn.click(); } }))),
+          el('div', null,
+            el('b', { text: d ? 'Одна дисциплина — .js: «' + d.title + '»' : 'Одна дисциплина — .js' }),
+            el('p', { class: 'hint', text: 'Выберите дисциплину в списке, чтобы отправить её другому человеку. Чужой файл тоже можно получить. Такой же файл кладётся в ' + cfg.DATA_DIR + ' для публикации.' }),
+            el('div', { class: 'toolbar' },
+              el('button', { class: 'btn btn-primary', type: 'button', text: '⬇ Экспорт дисциплины (.js)', disabled: !d,
+                onclick: function () { u.download(d.id + '.js', store.serializeFile(d), 'text/javascript'); } }),
+              el('button', { class: 'btn btn-ghost', type: 'button', text: '⬆ Импорт дисциплины (.js)', onclick: function () { oneIn.click(); } })))),
+        allIn, oneIn),
+
       el('details', { class: 'panel' },
-        el('summary', { text: 'Как опубликовать для всех пользователей' }),
+        el('summary', { text: 'Как опубликовать для всех посетителей сайта' }),
         el('ol', { style: 'margin-left:20px' },
           el('li', { text: 'Всё, что вы делаете здесь, хранится только в вашем браузере.' }),
-          el('li', { text: 'Выберите дисциплину → «Скачать файл дисциплины» → положите файл в ' + cfg.DATA_DIR }),
-          el('li', { text: 'Нажмите «⬇ manifest.js» и замените им ' + cfg.MANIFEST_FILE }),
+          el('li', { text: 'Выберите дисциплину → «Экспорт дисциплины (.js)» → положите файл в ' + cfg.DATA_DIR }),
+          el('li', { text: 'Нажмите «⬇ manifest.js» ниже и замените им ' + cfg.MANIFEST_FILE }),
           el('li', { text: 'Загрузите папку на хостинг и увеличьте DATA_VERSION в js/config.js (иначе браузеры покажут старый кэш).' }),
-          el('li', { text: 'Затем у себя можно нажать «Сбросить правки» — версия из файла станет основной.' })
-        )
-      )
+          el('li', { text: 'Затем у себя можно нажать «Сбросить правки» — версия из файла станет основной.' })),
+        el('div', { class: 'toolbar', style: 'margin-top:10px' },
+          el('button', { class: 'btn btn-ghost', type: 'button', text: '⬇ manifest.js',
+            onclick: function () { u.download('manifest.js', store.serializeManifest(), 'text/javascript'); } })))
     );
   }
 
@@ -193,7 +208,7 @@
 
     var actions = [
       el('button', {
-        class: 'btn btn-primary', type: 'button', text: '⬇ Скачать файл дисциплины',
+        class: 'btn btn-primary', type: 'button', text: '⬇ Экспорт (.js)',
         onclick: function () { u.download(d.id + '.js', store.serializeFile(d), 'text/javascript'); }
       })
     ];
@@ -373,19 +388,32 @@
     return el('div', { class: 'panel' }, el('h3', { text: 'Вопросы (' + d.questions.length + ')' }), search, el('div', { style: 'margin-top:10px' }, listBox));
   }
 
-  /* ---------- импорт файла ---------- */
+  /* ---------- импорт файла (.json со всем или .js с одной дисциплиной) ---------- */
   function importFile(file) {
     var reader = new FileReader();
     reader.onload = function () {
-      var obj;
-      try { obj = JSON.parse(String(reader.result)); }
-      catch (e) { toast('Файл не похож на JSON: ' + e.message, 'error'); return; }
-      if (!confirm('Дисциплины с теми же id будут заменены копиями из файла (в этом браузере). Продолжить?')) return;
-      var r = store.importData(obj);
-      if (!r.ok) { toast(r.error || 'Импорт не удался', 'error'); return; }
-      toast('Импортировано дисциплин: ' + r.imported + (r.skipped.length ? ' · пропущено: ' + r.skipped.length : ''), 'ok');
-      if (!current() && store.all().length) state.currentId = store.all()[0].id;
-      state.editing = null; render();
+      var text = String(reader.result), obj;
+      try {
+        obj = (/\.js$/i.test(file.name) || /^\s*(\/\*|\(|window)/.test(text)) ? store.parseDisciplineJs(text) : JSON.parse(text);
+      } catch (e) { toast(/JSON/.test(e.message) ? 'Файл не похож на JSON: ' + e.message : e.message, 'error'); return; }
+
+      var clash = store.conflicts(obj);
+      var ask = clash.length
+        ? u.choose('Такая дисциплина уже есть',
+            'В файле есть дисциплины, которые у вас уже есть:\n• ' + clash.join('\n• ') +
+            '\n\n«Заменить» — ваша версия будет перезаписана файлом.\n«Объединить» — добавить вопросы из файла (повторы не добавятся).\n«Копия» — сохранить рядом под новым id.',
+            [{ label: 'Заменить', value: 'replace', cls: 'btn-warning' }, { label: 'Объединить', value: 'merge', cls: 'btn-primary' },
+             { label: 'Копия', value: 'copy' }, { label: 'Отмена', value: null }])
+        : Promise.resolve('replace');
+
+      ask.then(function (mode) {
+        if (!mode) return;
+        var r = store.importData(obj, mode);
+        if (!r.ok) { toast(r.error || 'Импорт не удался', 'error'); return; }
+        toast('Импортировано дисциплин: ' + r.imported + (r.skipped.length ? ' · пропущено: ' + r.skipped.length : ''), 'ok');
+        if (!current() && store.all().length) state.currentId = store.all()[0].id;
+        state.editing = null; render();
+      });
     };
     reader.onerror = function () { toast('Не удалось прочитать файл', 'error'); };
     reader.readAsText(file);

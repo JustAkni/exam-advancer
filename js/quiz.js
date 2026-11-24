@@ -16,15 +16,13 @@
      в экзамене тест завершается сам.
 
    [НЕ УДАЛЯТЬ]
-   • Quiz.auth.guard() в начале — иначе тест открывается без входа.
    • Ответы выбираются по id ответа (a0, a1…), а не по тексту.
    • Порядок ответов (item.order) перемешивается ОДИН раз при старте теста.
    • total ? … : 0 в результатах — защита от деления на 0.
    ===================================================================== */
 (function () {
   'use strict';
-  Quiz.need('config', 'u', 'store', 'theme', 'auth');
-  if (!Quiz.auth.guard()) return;
+  Quiz.need('config', 'u', 'store', 'theme');
 
   var cfg = Quiz.config, T = cfg.T;
   var el = Quiz.u.el, clear = Quiz.u.clear, shuffle = Quiz.u.shuffle, add = Quiz.u.add;
@@ -47,6 +45,7 @@
   };
   /* выбор на экране настройки (сохраняется между попытками) */
   var setup = { size: 0, timerOn: false, minutes: cfg.TIMER_DEFAULT, exam: false };
+  var lastShown = -1;     // номер вопроса, который показывали последним (анимация только при смене вопроса)
   var ui = { bar: null, left: null, note: null, question: null, nav: null, grid: null };
 
   var disciplineId = new URLSearchParams(window.location.search).get(cfg.URL_PARAM);
@@ -182,6 +181,7 @@
       return { q: q, order: cfg.SHUFFLE_ANSWERS ? shuffle(ids) : ids };
     });
     state.current = 0;
+    lastShown = -1;
     state.answers = new Map();
     state.exam = !!setup.exam;
     state.startedAt = Date.now();
@@ -311,6 +311,8 @@
      ===================================================================== */
   function showQuestion(i) {
     state.current = i;
+    var enter = lastShown !== i;   // выбор ответа перерисовывает вопрос без анимации
+    lastShown = i;
     var item = state.items[i], q = item.q;
     var rec = state.answers.get(i);
     var checked = !!(rec && rec.checked) && !state.exam;
@@ -334,7 +336,7 @@
     var showConfirm = q.multi && !state.exam && !locked;
     var showClear = state.exam && !expired && rec && rec.selected.size > 0;
 
-    clear(ui.question).appendChild(el('div', { class: 'question-block' },
+    clear(ui.question).appendChild(el('div', { class: 'question-block' + (enter ? ' enter' : '') },
       el('h3', { text: T.question + ' ' + (i + 1) + ' ' + T.of + ' ' + state.items.length }),
       el('div', { class: 'question-text', text: q.question }),
       q.multi ? el('div', { class: 'question-hint', text: T.multiHint }) : null,

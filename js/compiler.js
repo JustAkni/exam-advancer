@@ -26,8 +26,7 @@
    ===================================================================== */
 (function () {
   'use strict';
-  Quiz.need('config', 'u', 'store', 'theme', 'auth');
-  if (!Quiz.auth.guard()) return;
+  Quiz.need('config', 'u', 'store', 'theme');
 
   var cfg = Quiz.config, store = Quiz.store, u = Quiz.u;
   var el = u.el, clear = u.clear, add = u.add;
@@ -171,7 +170,7 @@
       if (r.questions.length > 200) refs.preview.appendChild(el('p', { class: 'muted', text: 'Показаны первые 200 из ' + r.questions.length + '.' }));
     }
     var has = r.questions.length > 0;
-    ['btnSite', 'btnJson', 'btnJs'].forEach(function (k) { refs[k].disabled = !has; });
+    ['btnSite', 'btnJs'].forEach(function (k) { refs[k].disabled = !has; });
   }
 
   /* ---------- действия ---------- */
@@ -191,11 +190,6 @@
       el('a', { href: cfg.HOME_PAGE, text: 'На главную' })));
   }
 
-  function downloadJson() {
-    var d = buildRaw();
-    if (!d) { toast('Некорректный id дисциплины', 'error'); return; }
-    u.download(fileBase() + '.json', JSON.stringify(store._toRaw(d), null, 2), 'application/json');
-  }
   function downloadJs() {
     var d = buildRaw();
     if (!d) { toast('Некорректный id дисциплины', 'error'); return; }
@@ -240,8 +234,7 @@
     refs.preview = el('div', { class: 'preview-list' });
     refs.done = el('div');
     refs.btnSite = el('button', { class: 'btn btn-primary', type: 'button', text: '💾 Добавить на сайт', onclick: toSite });
-    refs.btnJson = el('button', { class: 'btn btn-ghost', type: 'button', text: '⬇ Скачать .json', onclick: downloadJson });
-    refs.btnJs = el('button', { class: 'btn btn-ghost', type: 'button', text: '⬇ Скачать .js (для data/)', onclick: downloadJs });
+    refs.btnJs = el('button', { class: 'btn btn-ghost', type: 'button', text: '⬇ Скачать дисциплину (.js)', onclick: downloadJs });
     refs.file = el('input', { type: 'file', accept: '.txt,.docx,text/plain', class: 'hidden', onchange: function () { loadFile(refs.file.files[0]); refs.file.value = ''; } });
 
     var drop = el('div', { class: 'dropzone' },
@@ -255,9 +248,10 @@
       el('label', { class: 'field' }, 'id (имя файла, латиницей)', refs.id));
 
     add(clear(app),
-      el('div', { class: 'info-card fade-in' },
-        el('h1', { class: 'main-title', text: '🧩 Компилятор тестов' }),
-        el('p', { class: 'muted', text: 'Вставьте сырой текст с тегами — получите готовый тест. Первый <variant> в каждом вопросе — правильный.' })),
+      el('div', { class: 'info-card' },
+        el('h1', { text: '🧩 Компилятор тестов' }),
+        el('p', { class: 'muted', text: 'Вставьте сырой текст с тегами — получите готовый тест. Первый <variant> в каждом вопросе — правильный.' }),
+        el('div', { class: 'toolbar', style: 'margin:12px 0 0' }, el('a', { class: 'btn btn-ghost btn-small', href: cfg.HOME_PAGE, text: '← В меню' }))),
 
       el('div', { class: 'compiler-grid' },
         el('div', { class: 'panel' },
@@ -280,10 +274,11 @@
         el('div', { class: 'panel' },
           el('h3', { text: '3. Результат' }),
           refs.stats, refs.errors, refs.preview,
-          el('div', { class: 'toolbar', style: 'margin-top:14px' }, refs.btnSite, refs.btnJson, refs.btnJs),
+          el('div', { class: 'toolbar', style: 'margin-top:14px' }, refs.btnSite, refs.btnJs),
           refs.done,
-          el('p', { class: 'hint', text: '«Добавить на сайт» сохраняет тест в этом браузере — он сразу появится на главной. ' +
-            'Чтобы тест видели все, скачайте .js, положите в data/disciplines/ и добавьте id в data/manifest.js (кнопка ⬇ manifest.js есть в редакторе).' }))));
+          el('p', { class: 'hint' }, '«Добавить на сайт» сохраняет тест в этом браузере — он сразу появится на главной. ',
+            '.js — файл ОДНОЙ дисциплины: отправьте его другу или положите в data/disciplines/ (и впишите id в data/manifest.js). ',
+            'Все дисциплины сразу (.json) и импорт чужих файлов — в ', el('a', { href: 'admin.html', text: 'редакторе' }), '.'))));
 
     compile();
   }
